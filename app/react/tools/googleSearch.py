@@ -4,6 +4,7 @@ import httplib2
 from app.react.tools_register import register_as_tool
 # import requests
 # from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 from app.config import Config as Config
 """
 ** 关于搜索API **
@@ -19,9 +20,13 @@ api_key = Config.GOOGLE_SEARCH_API_KEY
 cx = Config.GOOGLE_SEARCH_CX
 proxy = Config.GOOGLE_SEARCH_PROXY
 
+
 if proxy is not "NO_PROXY":
+    parsed_url = urlparse(proxy)
+    host = parsed_url.hostname or "127.0.0.1"
+    port = parsed_url.port or "10809"
     # 设置代理和超时时间
-    http = httplib2.Http(proxy_info=httplib2.ProxyInfo(httplib2.socks.PROXY_TYPE_HTTP, "127.0.0.1", 10809), timeout=60)
+    http = httplib2.Http(proxy_info=httplib2.ProxyInfo(httplib2.socks.PROXY_TYPE_HTTP, host, port), timeout=60)
 else:
     # 不设置代理
     http = httplib2.Http()
