@@ -27,6 +27,7 @@ if proxy is not "NO_PROXY":
     port = parsed_url.port or "10809"
     # 设置代理和超时时间
     http = httplib2.Http(proxy_info=httplib2.ProxyInfo(httplib2.socks.PROXY_TYPE_HTTP, host, port), timeout=60)
+
 else:
     # 不设置代理
     http = httplib2.Http()

@@ -118,3 +118,68 @@ main {
         font-size: 2rem;
     }
 }
+
+/*导航条高亮样式*/
+.nav-link.active {
+    background-color: #0d6efd; /* 更深的蓝色背景 */
+    color: white !important; /* 强制白色字体 */
+    border-radius: 5px; /* 圆角效果 */
+  }
+/* 消息样式 */
+.message {
+    display: flex;
+    padding: 1rem 1.5rem;
+    margin: 0.5rem auto;
+    max-width: 800px;
+    border-radius: 8px;
+    line-height: 1.5;
+}
+
+.message.user {
+    background-color: #f7f7f8;
+    align-self: flex-end;
+    max-width: fit-content;
+    margin-right: 100px;
+    margin-left: auto;
+    border-radius: 20px;
+}
+
+.message.assistant {
+    background-color: #ffffff;
+    border: 1px solid #e5e5e5;
+    margin: 1rem 100px 1rem 100px;
+    border-radius: 20px;
+}
+
+/* 聊天消息容器 */
+.chat-messages {
+    padding: 2rem;
+    overflow-y: auto;
+    height: calc(100vh - 180px); /* 调整高度，留出输入框空间 */
+}
+
+/* 输入框样式 */
+.chat-input-container {
+    position: fixed;
+    bottom: 0;
+    left: 260px; /* 侧边栏宽度 */
+    right: 0;
+    padding: 1rem;
+    background: white;
+    border-top: 1px solid #dee2e6;
+}
+
+.chat-form {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+}
+
+#message-input {
+    padding-right: 50px;
+    border-radius: 20px;
+    resize: none;
+    min-height: 40px;
+    max-height: 120px; /* 设置最大高度 */
+    overflow-y: auto;
+}

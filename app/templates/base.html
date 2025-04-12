@@ -14,7 +14,7 @@
     {% endblock %}
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="vh-100 d-flex flex-column">
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
@@ -28,32 +28,32 @@
                 {% if session.get('user_id') %}
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('ai_assistant.chat') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'ai_assistant.chat' }}" href="{{ url_for('ai_assistant.chat') }}">
                             <i class="fas fa-robot me-1"></i>AI助手
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard.index') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'dashboard.index' }}" href="{{ url_for('dashboard.index') }}">
                             <i class="fas fa-tachometer-alt me-1"></i>仪表盘
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('course.index') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'course.index' }}" href="{{ url_for('course.index') }}">
                             <i class="fas fa-book me-1"></i>课程
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('analytics.index') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'analytics.index' }}" href="{{ url_for('analytics.index') }}">
                             <i class="fas fa-chart-line me-1"></i>数据分析
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('search.index') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'search.index' }}" href="{{ url_for('search.index') }}">
                             <i class="fas fa-search me-1"></i>知识库
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('recommend.index') }}">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'recommend.index' }}" href="{{ url_for('recommend.index') }}">
                             <i class="fa fa-globe me-1"></i>资源推荐
                         </a>
                     </li>
@@ -83,7 +83,6 @@
             </div>
         </div>
     </nav>
-
     <!-- 消息提示 -->
     <div class="container mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -99,13 +98,13 @@
     </div>
 
     <!-- 主要内容 -->
-    <main class="container my-4">
+    <main class="{% block main_class %}container my-4{% endblock %}">
         {% block content %}{% endblock %}
     </main>
 
     <!-- 页脚 -->
     <footer class="footer mt-auto py-3 bg-light">
-        <div class="container text-center">
+        <div class="container">
             <span class="text-muted">© 2023 教学分析助手</span>
         </div>
     </footer>

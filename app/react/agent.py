@@ -5,6 +5,7 @@
 #from .tools.wiki import search as wiki_search
 #from .tools.bocha import bocha_search
 #from .tools.sql import *
+import app.react.tools.analyze_agent
 #from vertexai.generative_models import Part 
 from app.utils.io import write_to_file
 from app.utils.logging import logger
