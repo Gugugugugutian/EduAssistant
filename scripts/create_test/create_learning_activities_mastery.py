@@ -42,7 +42,8 @@ def get_assignment_performance(student, course, knowledge_point):
                   .where(
                       (StudentAssignment.student == student) &
                       (StudentAssignment.assignment.in_(assignments)) &
-                      (StudentAssignment.score.is_null(False))
+                      (StudentAssignment.final_score.is_null(False)) &
+                      (StudentAssignment.status >= 2)  # 已批改或有评语
                   ))
     
     if not submissions:
@@ -53,8 +54,8 @@ def get_assignment_performance(student, course, knowledge_point):
     total_possible = 0
     
     for submission in submissions:
-        total_score += submission.score
-        total_possible += submission.assignment.total_points
+        total_score += submission.final_score
+        total_possible += submission.total_score
     
     if total_possible == 0:
         return None

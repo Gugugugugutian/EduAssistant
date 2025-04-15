@@ -6,6 +6,8 @@ from app.models.assignment import *
 from app.models.learning_data import *
 from app.models.knowledge_base import *
 from app.models.chat import *
+from app.models.NewAdd import Question, StudentAnswer, Feedback, WrongBook, QuestionWrongBook
+
 
 from app import create_app
 
@@ -17,7 +19,8 @@ tables = [
             Assignment, StudentAssignment,
             LearningActivity, KnowledgePoint, StudentKnowledgePoint, AssignmentKnowledgePoint, KnowledgeBaseKnowledgePoint,
             KnowledgeBase,
-            Chat, ChatMessage
+            Chat, ChatMessage,
+            Question, StudentAnswer, Feedback, WrongBook, QuestionWrongBook
         ]
 
 # db.drop_tables(tables)

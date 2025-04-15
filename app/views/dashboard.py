@@ -4,6 +4,10 @@ from app.services.assignment_service import AssignmentService
 from app.services.analytics_service import AnalyticsService
 from app.services.user_service import UserService
 from app.services.recommend_service import RecommendService
+from app.services.wrong_answer_analysis_service import WrongAnswerAnalysisService
+from app.services.education_copywriting_service import EducationCopywritingService
+from app.services.question_generator_service import QuestionGeneratorService
+from app.services.teaching_preparation_service import TeachingPreparationService
 from app.models.user import User
 
 dashboard_bp = Blueprint('dashboard', __name__)

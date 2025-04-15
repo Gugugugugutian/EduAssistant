@@ -1,0 +1,16 @@
+图片路径: E:\Grade_6\student_helper\EduAssistant\uploads\homework_answers\1_18_9ca8e026-2db3-4db8-8487-835e11c21377.png
+题号: 18
+答案: 我觉得依然如此
+答案区域截图: E:\Grade_6\student_helper\EduAssistant\uploads\ocr_results\answer_images\answer_18_1743606969.png
+
+详细OCR结果:
+- 17、←
+- 不会做，这道题太难了不会做啊哥们
+- 1111我也觉得
+- 18、
+- 我觉得依然如此
+- 19、
+- 会不会玩，哥们
+
+答案区域坐标:
+[[169.0, 337.0], [369.0, 337.0], [369.0, 368.0], [169.0, 368.0]]

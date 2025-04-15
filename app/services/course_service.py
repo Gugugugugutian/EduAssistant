@@ -61,7 +61,9 @@ class CourseService:
         for assignment in course.assignments:
             StudentAssignment.create(
                 student=student,
-                assignment=assignment
+                assignment=assignment,
+                status="0",
+                total_score=assignment.total_points
             ).save()
 
         return StudentCourse.create(

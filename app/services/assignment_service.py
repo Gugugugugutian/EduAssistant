@@ -134,24 +134,34 @@ class AssignmentService:
     @register_as_tool(roles=["student", "teacher"])
     @staticmethod
     def get_student_assignments(student_id, course_id=None, completed=None):
-        """获取学生的作业列表。
+        """
+        获取学生的作业列表，可以按课程和完成状态筛选
         
         Args:
-            student_id (int): 学生用户ID
-            course_id (int, optional): 课程ID，用于筛选指定课程的作业
-            completed (bool, optional): 是否已完成，用于筛选作业状态
+            student_id (int): 学生ID
+            course_id (int, optional): 课程ID，用于筛选
+            completed (bool, optional): 完成状态，用于筛选
             
         Returns:
-            list: 学生作业对象列表
+            list: StudentAssignment对象列表
         """
-        query = StudentAssignment.select().where(StudentAssignment.student_id == student_id)
+        query = (StudentAssignment
+                 .select(StudentAssignment, Assignment, Course)
+                 .join(Assignment)
+                 .join(Course, on=(Assignment.course_id == Course.id))
+                 .where(StudentAssignment.student_id == student_id))
         
         if course_id:
-            query = query.join(Assignment).where(Assignment.course_id == course_id)
-            
+            query = query.where(Assignment.course_id == course_id)
+        
         if completed is not None:
-            query = query.where(StudentAssignment.completed == completed)
-            
+            if completed:
+                # 状态大于0表示作业已提交（不是"待完成"）
+                query = query.where(StudentAssignment.status > 0)
+            else:
+                # 状态为0表示作业待完成
+                query = query.where(StudentAssignment.status == 0)
+        
         return list(query)
     
     @register_as_tool(roles=["teacher"])

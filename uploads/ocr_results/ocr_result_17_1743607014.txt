@@ -1,0 +1,16 @@
+图片路径: E:\Grade_6\student_helper\EduAssistant\uploads\homework_answers\1_17_861b68ef-e4ea-411f-9a18-55fc4ba858be.png
+题号: 17
+答案: ← ← 不会做，这道题太难了不会做啊哥们 1111我也觉得 19、
+答案区域截图: E:\Grade_6\student_helper\EduAssistant\uploads\ocr_results\answer_images\answer_17_1743607014.png
+
+详细OCR结果:
+- 17、←
+- 不会做，这道题太难了不会做啊哥们
+- 1111我也觉得
+- 18、
+- 我觉得依然如此
+- 19、
+- 会不会玩，哥们
+
+答案区域坐标:
+[[68.0, 91.0], [555.0, 91.0], [555.0, 428.0], [68.0, 428.0]]

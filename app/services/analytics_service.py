@@ -193,7 +193,9 @@ class AnalyticsService:
         query = StudentAssignment.select().join(Assignment)
         query = query.where(
             (StudentAssignment.student_id == student_id) &
-            (StudentAssignment.completed == False) &
+            # 修改这里：使用status字段代替completed字段
+            # status为0表示作业待完成（未提交）
+            (StudentAssignment.status == 0) &
             (Assignment.due_date < now)
         )
         

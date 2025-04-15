@@ -3,6 +3,7 @@ from app.services.analytics_service import AnalyticsService
 from app.services.course_service import CourseService
 from app.models.user import User
 from app.models.course import Course
+from app.utils.result import Result  # 导入Result类
 
 analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 

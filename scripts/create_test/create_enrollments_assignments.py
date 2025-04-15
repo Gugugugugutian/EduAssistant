@@ -200,81 +200,127 @@ def create_student_submissions():
         course_assignments = [a for a in assignments if a.course_id == enrollment.course_id]
         
         for assignment in course_assignments:
-            # Only create submissions for past due assignments (~80% chance)
-            if assignment.due_date < CURRENT_DATE and random.random() < 0.8:
-                # Simulate different submission patterns
-                # 85% submit before deadline, 15% submit late
-                is_late = random.random() < 0.15
-                
-                # Calculate submission time
-                if is_late:
-                    # 1-48 hours late
-                    hours_late = random.randint(1, 48)
-                    submission_time = assignment.due_date + datetime.timedelta(hours=hours_late)
-                else:
-                    # 1 minute to 72 hours before deadline
-                    hours_before = random.randint(0, 72)
-                    minutes_before = random.randint(1, 59) if hours_before == 0 else 0
-                    submission_time = assignment.due_date - datetime.timedelta(
-                        hours=hours_before, minutes=minutes_before
-                    )
-                
-                # Determine score (affected by lateness)
-                max_score = assignment.total_points
-                if is_late:
-                    base_score_pct = random.uniform(0.5, 0.85)  # Late submissions score lower
-                else:
-                    base_score_pct = random.uniform(0.65, 0.98)  # On-time submissions score higher
-                
-                # Add some randomness to simulate student performance variations
-                score = round(max_score * base_score_pct * random.uniform(0.9, 1.1), 1)
-                score = min(max_score, max(0, score))  # Clamp between 0 and max
-                
-                # Generate an appropriate answer text
-                answer_length = random.randint(500, 2000)
-                answer = f"Student submission for {assignment.title}. This is a simulated answer "
-                answer += f"of approximately {answer_length} characters in length. "
-                answer += "It includes references to relevant course materials and knowledge points."
-                
-                # Generate feedback based on score
-                if score >= 0.9 * max_score:
-                    feedback = "Excellent work! You've demonstrated a thorough understanding of the concepts."
-                elif score >= 0.8 * max_score:
-                    feedback = "Good job. Your submission covers most key points with minor issues."
-                elif score >= 0.7 * max_score:
-                    feedback = "Satisfactory work with some gaps in understanding. Review sections on [topic]."
-                elif score >= 0.6 * max_score:
-                    feedback = "Passing, but shows significant misunderstandings. Please see me during office hours."
-                else:
-                    feedback = "This submission does not meet the requirements. Consider reworking and resubmitting."
-                
-                try:
-                    submission, created = StudentAssignment.get_or_create(
-                        student=enrollment.student,
-                        assignment=assignment,
-                        defaults={
-                            'answer': answer,
-                            'feedback': feedback if random.random() < 0.9 else None,  # 90% have feedback
-                            'score': score if random.random() < 0.95 else None,  # 95% have been graded
-                            'submitted_at': submission_time,
-                            'attempts': random.randint(1, 3),
-                            'completed': True,
-                            'created_at': submission_time,
-                            'updated_at': submission_time + datetime.timedelta(days=random.randint(1, 5))  # Grading delay
-                        }
-                    )
+            # 确定作业状态
+            if assignment.due_date < CURRENT_DATE:
+                # 过期作业有80%的概率被提交
+                if random.random() < 0.8:
+                    # 已提交的作业
+                    # 85%按时提交，15%迟交
+                    is_late = random.random() < 0.15
                     
-                    if created:
-                        print(f"Created submission for {enrollment.student.name} on {assignment.title}")
-                        submissions.append(submission)
+                    # 计算提交时间
+                    if is_late:
+                        # 迟交1-48小时
+                        hours_late = random.randint(1, 48)
+                        submission_time = assignment.due_date + datetime.timedelta(hours=hours_late)
                     else:
-                        print(f"Submission for {enrollment.student.name} on {assignment.title} already exists")
-                        submissions.append(submission)
+                        # 提前1分钟到72小时提交
+                        hours_before = random.randint(0, 72)
+                        minutes_before = random.randint(1, 59) if hours_before == 0 else 0
+                        submission_time = assignment.due_date - datetime.timedelta(
+                            hours=hours_before, minutes=minutes_before
+                        )
+                    
+                    # 确定分数
+                    max_score = assignment.total_points
+                    if is_late:
+                        base_score_pct = random.uniform(0.5, 0.85)  # 迟交得分较低
+                    else:
+                        base_score_pct = random.uniform(0.65, 0.98)  # 按时提交得分较高
+                    
+                    # 添加随机性模拟学生表现差异
+                    final_score = round(max_score * base_score_pct * random.uniform(0.9, 1.1), 1)
+                    final_score = min(max_score, max(0, final_score))  # 限制在0和最高分之间
+                    
+                    # 随机决定状态：已批改或有评语
+                    status = random.choice([2, 3])
+                    
+                    try:
+                        submission, created = StudentAssignment.get_or_create(
+                            student=enrollment.student,
+                            assignment=assignment,
+                            defaults={
+                                'course': enrollment.course,
+                                'status': status,
+                                'total_score': assignment.total_points,
+                                'final_score': final_score,
+                                'work_time': submission_time
+                            }
+                        )
                         
-                except Exception as e:
-                    print(f"Error creating submission for {enrollment.student.name} on {assignment.title}: {e}")
+                        if created:
+                            submissions.append(submission)
+                        
+                    except Exception as e:
+                        print(f"Error creating submission for {enrollment.student.name} on {assignment.title}: {e}")
+                else:
+                    # 未提交的过期作业，状态为待完成
+                    try:
+                        submission, created = StudentAssignment.get_or_create(
+                            student=enrollment.student,
+                            assignment=assignment,
+                            defaults={
+                                'course': enrollment.course,
+                                'status': 0,
+                                'total_score': assignment.total_points,
+                                'final_score': None,
+                                'work_time': None
+                            }
+                        )
+                        
+                        if created:
+                            submissions.append(submission)
+                            
+                    except Exception as e:
+                        print(f"Error creating submission for {enrollment.student.name} on {assignment.title}: {e}")
+            else:
+                # 未到期的作业
+                # 20%的概率已提交但未批改
+                if random.random() < 0.2:
+                    # 提前提交
+                    days_before = random.randint(1, 10)
+                    submission_time = CURRENT_DATE - datetime.timedelta(days=days_before)
+                    
+                    try:
+                        submission, created = StudentAssignment.get_or_create(
+                            student=enrollment.student,
+                            assignment=assignment,
+                            defaults={
+                                'course': enrollment.course,
+                                'status': 1,  # 待批改
+                                'total_score': assignment.total_points,
+                                'final_score': None,
+                                'work_time': submission_time
+                            }
+                        )
+                        
+                        if created:
+                            submissions.append(submission)
+                            
+                    except Exception as e:
+                        print(f"Error creating submission for {enrollment.student.name} on {assignment.title}: {e}")
+                else:
+                    # 未提交的未到期作业
+                    try:
+                        submission, created = StudentAssignment.get_or_create(
+                            student=enrollment.student,
+                            assignment=assignment,
+                            defaults={
+                                'course': enrollment.course,
+                                'status': 0,  # 待完成
+                                'total_score': assignment.total_points,
+                                'final_score': None,
+                                'work_time': None
+                            }
+                        )
+                        
+                        if created:
+                            submissions.append(submission)
+                            
+                    except Exception as e:
+                        print(f"Error creating submission for {enrollment.student.name} on {assignment.title}: {e}")
     
-    print(f"Created {len(submissions)} student submissions.")
+    print(f"Created {len(submissions)} student assignment submissions.")
     return submissions
 
 def main():

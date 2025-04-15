@@ -8,10 +8,14 @@ from app.models.assignment import *
 from app.models.learning_data import *
 from app.models.knowledge_base import *
 from app.models.chat import *
+# 导入新增模型
+from app.models.NewAdd import Question, StudentAnswer, Feedback, WrongBook, QuestionWrongBook
+
 
 from scripts.create_tables import tables
 
-db.drop_tables(tables)
+# 修改这一行，添加cascade=True参数
+db.drop_tables(tables, cascade=True)
 db.create_tables(tables)
 
 from app.services.user_service import UserService
@@ -60,7 +64,10 @@ from scripts.create_test.create_test_users import main as step1
 from scripts.create_test.create_courses_knowledge_points import main as step2
 from scripts.create_test.create_enrollments_assignments import main as step3
 from scripts.create_test.create_learning_activities_mastery import main as step4
+from scripts.create_test.create_questions_wrongbooks import main as step5
+
 step1()
 step2()
 step3()
 step4()
+step5()  # 添加第5步：创建题目、学生答题、教师反馈和错题本数据

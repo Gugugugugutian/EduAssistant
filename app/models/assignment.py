@@ -14,16 +14,15 @@ class Assignment(BaseModel):
         return f'<Assignment {self.title} for {self.course.code}>'
 
 class StudentAssignment(BaseModel):
+    assignment = ForeignKeyField(Assignment, backref='student_assignments')
     student = ForeignKeyField(User, backref='assignments')
-    assignment = ForeignKeyField(Assignment, backref='submissions')
-    answer = TextField(null=True)
-    feedback = TextField(null=True)
-    score = FloatField(null=True)
-    submitted_at = DateTimeField(null=True)
-    attempts = IntegerField(default=0)
-    completed = BooleanField(default=False)
+    course = ForeignKeyField(Course, backref='student_assignments', null=True)
+    status = IntegerField(default=0)  # 0:待完成, 1:待批改, 2:已批改, 3:有评语
+    total_score = FloatField(null=True)  # 总分
+    final_score = FloatField(null=True)  # 最终得分
+    work_time = DateTimeField(null=True)  # 提交时间
+    
     
     class Meta:
-        indexes = (
-            (('student', 'assignment'), True),  # 确保学生-作业组合唯一
-        )
+        primary_key = CompositeKey('assignment', 'student')
+        table_name = 'studentassignment'
