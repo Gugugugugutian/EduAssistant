@@ -8,8 +8,11 @@ from app.models.assignment import Assignment
 from app.models.knowledge_base import KnowledgeBase
 from typing import List, Dict, Optional
 from peewee import DoesNotExist
+from app.react.tools_register import register_as_tool
 
 class KnowledgePointService:
+
+    @register_as_tool(roles=["teacher"])
     @staticmethod
     def create_knowledge_point(name: str, course_id: int, description: str = None, parent_id: int = None) -> KnowledgePoint:
         """创建一个新的知识点。
@@ -53,6 +56,7 @@ class KnowledgePointService:
         except DoesNotExist:
             raise ValueError(f"课程ID {course_id} 不存在")
 
+    @register_as_tool(roles=["student", "teacher"])
     @staticmethod
     def get_knowledge_point(knowledge_point_id: int) -> KnowledgePoint:
         """获取指定ID的知识点。
@@ -71,6 +75,7 @@ class KnowledgePointService:
         except DoesNotExist:
             raise ValueError(f"知识点ID {knowledge_point_id} 不存在")
 
+    @register_as_tool(roles=["student", "teacher"])
     @staticmethod
     def get_course_knowledge_points(course_id: int, include_tree: bool = False) -> List[KnowledgePoint]:
         """获取指定课程的所有知识点。
@@ -94,10 +99,10 @@ class KnowledgePointService:
                     (KnowledgePoint.course_id == course_id) & 
                     (KnowledgePoint.parent.is_null())
                 )
-                return top_level_points
+                return list(top_level_points)
             else:
                 # 获取所有知识点
-                return KnowledgePoint.select().where(KnowledgePoint.course_id == course_id)
+                return list(KnowledgePoint.select().where(KnowledgePoint.course_id == course_id))
                 
         except DoesNotExist:
             raise ValueError(f"课程ID {course_id} 不存在")

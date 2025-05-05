@@ -95,7 +95,7 @@ class AnalyticsService:
     
     @register_as_tool(roles=["student", "teacher"])
     @staticmethod
-    def get_student_activity_summary(student_id, course_id=None, days=30):
+    def get_student_activity_summary(student_id, course_id=None, days=360):
         """获取学生活动概要。
         
         Args:

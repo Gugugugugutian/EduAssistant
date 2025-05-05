@@ -2,6 +2,7 @@ from pydantic_ai import Agent, RunContext, ModelRetry
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.deepseek import DeepSeekProvider
+from pydantic_ai.providers.openai import OpenAIProvider
 from dataclasses import dataclass
 
 import os
@@ -15,6 +16,12 @@ from app.models.user import User
 from app.models.course import Course
 from app.models.assignment import Assignment, StudentAssignment
 from app.react.tools_register import register_as_tool
+from app.utils.io import write_to_file
+
+
+OUTPUT_TRACE_PATH = "./data/analytics/trace.txt"
+
+
 
 def data_frame_from_peewee_query(query: peewee.Query) -> pd.DataFrame:
     connection = query._database.connection()  # noqa
@@ -39,13 +46,16 @@ class Deps:
 model = OpenAIModel(
     'deepseek-chat',
     provider=DeepSeekProvider(api_key=os.getenv('DEEPSEEK_API_KEY')),
+    #'gpt-4-turbo', 
+    #provider=OpenAIProvider(api_key=os.getenv('OPENAI_API_KEY'))
 )
 
 agent = Agent(
     model=model,
-    system_prompt="""You are an AI assistant that helps extract information from a pandas DataFrame.
-    If asked about columns, be sure to check the column names first.
-    Be concise in your answers.""",
+    system_prompt="""
+    你是一个帮助从 pandas DataFrame 中提取信息的 AI 助手。
+    仅当你确信已有足够信息时才提供最终答案。
+    """,
     deps_type=Deps,
 
     # Allow the agent to make mistakes and correct itself. Details will be covered in the tool definition.
@@ -67,25 +77,25 @@ async def df_query(ctx: RunContext[Deps], query: str) -> str:
     """
 
     # Print the query for debugging purposes and fun :)
-    print(f'Running query: `{query}`')
+    write_to_file(OUTPUT_TRACE_PATH, f'Running query: `{query}`\n')
     try:
         # Execute the query using `pd.eval` and return the result as a string (must be serializable).
-        print("Query result:", str(pd.eval(query, target=ctx.deps.df)))
+        write_to_file(OUTPUT_TRACE_PATH, f"Query result: \n{str(pd.eval(query, target=ctx.deps.df))}\n")
         return str(pd.eval(query, target=ctx.deps.df))
     except Exception as e:
         #  On error, raise a `ModelRetry` exception with feedback for the agent.
-        print("Query error:", e)
+        write_to_file(OUTPUT_TRACE_PATH, f"Query error: {e}\n")
         raise ModelRetry(f'query: `{query}` is not a valid query. Reason: `{e}`') from e
 
 
 def ask_agent(question, df):
     """Function to ask questions to the agent and display the response"""
     deps = Deps(df=df)
-    print(f"Question: {question}")
+    write_to_file(OUTPUT_TRACE_PATH, f"Question: {question}\n")
     result = agent.run_sync(question, deps=deps)
     #print(f"Answer: {response.new_messages()[-1].content}")
-    print(f"Answer: {result.data}")
-    print("---")
+    write_to_file(OUTPUT_TRACE_PATH, f"Answer: {result.data}\n")
+    write_to_file(OUTPUT_TRACE_PATH, '-'*50 + '\n')
     return result.data
 
 
@@ -114,7 +124,7 @@ def learning_analyze(question, df_to_be_analyzed):
                     KnowledgePoint.name.alias("knowledge_point_name"), KnowledgePoint.id.alias("knowledge_point_id"),
                     StudentKnowledgePoint.mastery_level,
                     Course.name.alias("course_name"), Course.code.alias("course_code"), Course.id.alias("course_id"),
-                    Teacher.name.alias("teacher_name"), Teacher.id.alias("teacher_id"))
+                    Teacher.name.alias("teacher_name"))
             .join(Student)
             .switch(StudentKnowledgePoint)
             .join(KnowledgePoint)
@@ -128,7 +138,7 @@ def learning_analyze(question, df_to_be_analyzed):
             .select(Student.name.alias("student_name"), Student.id.alias("student_id"),
                     Course.name.alias("course_name"), Course.code.alias("course_code"), Course.id.alias("course_id"),
                     LearningActivity.activity_type, LearningActivity.duration, LearningActivity.timestamp,
-                    Teacher.name.alias("teacher_name"), Teacher.id.alias("teacher_id"))
+                    Teacher.name.alias("teacher_name"))
             .join(Student)
             .switch(LearningActivity)
             .join(Course)
@@ -143,7 +153,7 @@ def learning_analyze(question, df_to_be_analyzed):
                     Assignment.title.alias("assignment_title"), Assignment.id.alias("assignment_id"),
                     StudentAssignment.score, StudentAssignment.submitted_at, StudentAssignment.attempts,
                     Assignment.total_points,
-                    Teacher.name.alias("teacher_name"), Teacher.id.alias("teacher_id"))
+                    Teacher.name.alias("teacher_name"))
             .join(Student)
             .switch(StudentAssignment)
             .join(Assignment)
@@ -163,8 +173,14 @@ def learning_analyze(question, df_to_be_analyzed):
     global df
     df = data_frame_from_peewee_query(query)
 
+    user_prompt = f"""
+    提示：{description}
+    dataframe columns: {df.columns}
+    问题: {question}
+    """
+
     return ask_agent(
-        question=description+'\n'+f"dataframe columns:{df.columns}\n"+question,
+        question=user_prompt,
         df=df
     )
 
@@ -190,13 +206,38 @@ def test():
     #ask_agent("Please summarize the knowledge mastery level of student Chen Jie.", df)
     #print("="*50)
     #print(learning_analyze("Please give a comprehensive report about the knowledge point mastery levels of students in my class 'CS101'.", "knowledge_mastery"))
-    print("="*50)
-    print(learning_analyze("Please give a comprehensive report about the learning activities of students in my class 'CS101'(course code).", "learning_activity"))
-    print("="*50)
-    print(learning_analyze("Please give a comprehensive report about the learning situations of students in my class 'CS101(course code)' according to the assignment scores.", "assignment"))
-    
+    #print("="*50)
+    #print(learning_analyze("Please give a comprehensive report about the learning activities of students in my class 'CS101'(course code).", "learning_activity"))
+    #print("="*50)
+    #print(learning_analyze("Please give a comprehensive report about the learning situations of students in my class 'CS101(course code)' according to the assignment scores.", "assignment"))
+    #print("="*50)
+    #print(learning_analyze("请从知识点和学生两个角度出发，给出一份全面的CS101课程的学生知识点掌握情况报告。", "knowledge_mastery"))
+    #print("="*50)
+    #print(learning_analyze("Please give a comprehensive report about the learning activities of students in my class 'CS101'(course code).", "learning_activity"))
+    #print("="*50)
+    #print(learning_analyze("Please give a comprehensive report about the learning situations of students in my class 'CS101(course code)' according to the assignment scores.", "assignment"))
+    learning_analyze("请分析课程AI201的掌握度薄弱环节。", "knowledge_mastery")
+    learning_analyze("请根据")
+    learning_analyze("请根据quiz和期中测试分析学生学习情况。", "assignment")
 
 if __name__ == '__main__':
+    from app import create_app
+    create_app()
     session = {}
+    # prof_wang
+    session['user_id'] = 4
+    #learning_analyze("请分析课程AI201的知识点掌握度薄弱环节。", "knowledge_mastery")
+    # prof_zhang
     session['user_id'] = 2
-    test()
+    #learning_analyze("在课程CS101中学生更倾向于什么学习方式？", "learning_activity")
+    # prof_wang
+    session['user_id'] = 4
+    learning_analyze("请根据小测和期中测试成绩分布评估课程AI201中学生的学习情况。", "assignment")
+
+'''
+for candle in darkness:
+    await burn_up(sorrow)
+    while True:
+        sadness += 1
+    learnt = False
+'''

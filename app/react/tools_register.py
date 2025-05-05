@@ -8,6 +8,7 @@ from datetime import datetime, date
 from flask import jsonify, Response
 from app.utils.logging import logger
 from app.models.base import BaseModel
+from app.models.user import User
 from playhouse.shortcuts import model_to_dict
 
 class ToolExecutionError(Exception):
@@ -21,6 +22,35 @@ class ToolExecutionError(Exception):
 student_tools = {}
 teacher_tools = {}
 admin_tools = {}
+
+def clean_datetime_fields(data: Union[Dict, List, Any]) -> Union[Dict, List, Any]:
+    """Recursively remove 'created_at' and 'updated_at' fields from dictionaries.
+    
+    Args:
+        data: The data structure to clean, can be a dictionary, list, or other value.
+        
+    Returns:
+        The cleaned data structure with datetime fields removed.
+    """
+    if isinstance(data, dict):
+        # Create a new dict without datetime fields
+        cleaned_dict = {}
+        for key, value in data.items():
+            # Skip created_at and updated_at fields
+            if key in ('created_at', 'updated_at'):
+                continue
+            # Recursively clean nested structures
+            cleaned_dict[key] = clean_datetime_fields(value)
+        return cleaned_dict
+    elif isinstance(data, list):
+        # Recursively clean each item in the list
+        return [clean_datetime_fields(item) for item in data]
+    else:
+        # Return non-dict, non-list values as is
+        return data
+
+def model_to_dict_cleaned(model):
+    return clean_datetime_fields(model_to_dict(model, exclude=[User.password_hash]))
 
 def create_tool_executor(func: Callable) -> Callable:
     """Create a function that executes a service method with JSON/Dict parameters.
@@ -40,10 +70,10 @@ def create_tool_executor(func: Callable) -> Callable:
             results = func(**params)
             # 如果返回的是BaseModel，则转换为字典
             if isinstance(results, BaseModel):
-                return model_to_dict(results)
+                return model_to_dict_cleaned(results)
             # 如果返回的是列表，则转换为字典列表
             elif isinstance(results, list):
-                return [model_to_dict(result) for result in results]
+                return [model_to_dict_cleaned(result) for result in results]
             # 如果返回的是其他类型，则直接返回
             return results
         except Exception as e:

@@ -3,6 +3,7 @@ from typing import Optional
 from app.models.assignment import Assignment, StudentAssignment
 from app.models.course import Course, StudentCourse
 from app.react.tools_register import register_as_tool
+from peewee import DoesNotExist
 
 class AssignmentService:
     """作业服务类，处理作业管理和学生作业提交。
@@ -90,9 +91,20 @@ class AssignmentService:
             
         """
         #student_assignment = StudentAssignment.get_or_none(
+        
+        assignment = Assignment.get_by_id(assignment_id)
+        enrollment = StudentCourse.select().where(
+            (StudentCourse.student == student_id) &
+            (StudentCourse.course == assignment.course)
+        ).get_or_none()
+
+        if not enrollment:
+            raise ValueError("学生未加入课程")
+
+        student = enrollment.student
         student_assignment, created = StudentAssignment.get_or_create(
-            student = student_id,
-            assignment = assignment_id
+            student = student,
+            assignment = assignment
         )
         
         #if not student_assignment:

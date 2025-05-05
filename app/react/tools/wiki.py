@@ -1,12 +1,17 @@
-from src.config.logging import logger
+from app.utils.logging import logger
 from typing import Optional
 import wikipediaapi
 import json
+from app.react.tools_register import register_as_tool
 
 
-def search(query: str) -> Optional[str]:
+
+@register_as_tool(roles=["student", "teacher"])
+def wikipedia(query: str) -> Optional[str]:
     """
     Fetch Wikipedia information for a given search query using Wikipedia-API and return as JSON.
+
+    This tool works better for English queries.
 
     Args:
         query (str): The search query string.
@@ -44,7 +49,7 @@ if __name__ == '__main__':
     queries = ["Geoffrey Hinton", "Demis Hassabis"]
 
     for query in queries:
-        result = search(query)
+        result = wikipedia(query)
         if result:
             print(f"JSON result for '{query}':\n{result}\n")
         else:

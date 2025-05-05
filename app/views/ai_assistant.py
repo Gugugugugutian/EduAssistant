@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from app.models.user import User
 from app.models.chat import Chat, ChatMessage
 from app.react.agent import run
+from app.ext import db
 import json
 
 ai_assistant_bp = Blueprint('ai_assistant', __name__, url_prefix='/ai-assistant')
@@ -106,35 +107,39 @@ def send_message(chat_id):
         return jsonify({'error': '消息不能为空'}), 400
     
     try:
-        # 确保聊天存在且属于当前用户
-        chat = Chat.get_or_none(Chat.id == chat_id, Chat.user == user)
-        
-        if not chat:
-            return jsonify({'error': '聊天不存在或无权访问'}), 404
-        
-        # 记录用户消息
-        user_message = ChatMessage.create(
-            chat=chat,
-            role=ChatMessage.ROLE_USER,
-            content=data['message']
-        )
-        
-        # 调用AI模型生成回复
-        # TODO: 选择权限最高的角色
-        ai_response = run(data['message'], user.roles[0].role.name)
-        
-        # 记录AI回复
-        ai_message = ChatMessage.create(
-            chat=chat,
-            role=ChatMessage.ROLE_ASSISTANT,
-            content=ai_response
-        )
-        
-        # 更新聊天标题 - 只在第一条消息时更新
-        if chat.title == "新会话":
-            # 使用用户的第一条消息作为聊天标题
-            chat.title = data['message'][:30] + ('...' if len(data['message']) > 30 else '')
-            chat.save()
+        # 使用事务确保原子性
+        with db.atomic():
+            # 确保聊天存在且属于当前用户
+            chat = Chat.get_or_none(Chat.id == chat_id, Chat.user == user)
+            
+            if not chat:
+                return jsonify({'error': '聊天不存在或无权访问'}), 404
+            
+            # 记录用户消息
+            user_message = ChatMessage.create(
+                chat=chat,
+                role=ChatMessage.ROLE_USER,
+                content=data['message']
+            )
+            
+            history_messages = ChatMessage.select().where(ChatMessage.chat == chat).order_by(ChatMessage.timestamp)
+
+            # 调用AI模型生成回复
+            # TODO: 选择权限最高的角色
+            ai_response = run(data['message'], user.roles[0].role.name, history_messages)
+            
+            # 记录AI回复
+            ai_message = ChatMessage.create(
+                chat=chat,
+                role=ChatMessage.ROLE_ASSISTANT,
+                content=ai_response
+            )
+            
+            # 更新聊天标题 - 只在第一条消息时更新
+            if chat.title == "新会话":
+                # 使用用户的第一条消息作为聊天标题
+                chat.title = data['message'][:30] + ('...' if len(data['message']) > 30 else '')
+                chat.save()
         
         return jsonify({
             'user_message': {

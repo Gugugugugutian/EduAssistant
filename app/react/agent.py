@@ -6,6 +6,7 @@
 #from .tools.bocha import bocha_search
 #from .tools.sql import *
 import app.react.tools.analyze_agent
+import app.react.tools.wiki
 #from vertexai.generative_models import Part 
 from app.utils.io import write_to_file
 from app.utils.logging import logger
@@ -30,7 +31,7 @@ from flask import session
 from app.models.user import User
 Observation = Union[str, Exception]
 
-PROMPT_TEMPLATE_PATH = "./data/input/react.txt"
+PROMPT_TEMPLATE_PATH = "./data/input/react-Chinese.txt"
 OUTPUT_TRACE_PATH = "./data/output/trace.txt"
 
 class Choice(BaseModel):
@@ -98,7 +99,8 @@ class Agent:
         """
         self.model = model
         self.tools: Dict[str, Tool] = {}
-        self.messages: List[Message] = []
+        self.history: List[Message] = []  # 历史消息记录
+        self.messages: List[Message] = [] # 本次任务的观测记录
         self.query = ""
         self.max_iterations = 20
         self.current_iteration = 0
@@ -135,7 +137,20 @@ class Agent:
             self.messages.append(Message(role=role, content=content))
         write_to_file(path=OUTPUT_TRACE_PATH, content=f"{role}: {content}\n")
 
+    def add_history(self, role: str, content: str) -> None:
+        """
+        Adds a message to the conversation history.
+
+        Args:
+            role (str): The role of the message sender.
+            content (str): The content of the message.
+        """
+        self.history.append(Message(role=role, content=content))
+    
     def get_history(self) -> str:
+        return "\n".join([f"{message.role}: {message.content}" for message in self.history])
+
+    def get_messages(self) -> str:
         """
         Retrieves the conversation history.
 
@@ -154,12 +169,13 @@ class Agent:
 
         if self.current_iteration > self.max_iterations:
             logger.warning("Reached maximum iterations. Stopping.")
-            self.trace("assistant", "I'm sorry, but I couldn't find a satisfactory answer within the allowed number of iterations. Here's what I know so far: " + self.get_history())
+            self.trace("assistant", "I'm sorry, but I couldn't find a satisfactory answer within the allowed number of iterations. Here's what I know so far: " + self.get_messages())
             return
 
         prompt = self.template.format(
             query=self.query, 
             history=self.get_history(),
+            messages=self.get_messages(),
             tools='\n\n'.join([
                 f"{str(tool.name)}: \n \'\'\'{tool.description}\n\'\'\'" 
                 for tool in self.tools.values()
@@ -167,7 +183,8 @@ class Agent:
             user_info=json.dumps(UserService.get_user_info(session.get('user_id')), indent=4)
             #database_schema=database_schema
         )
-        print(prompt)
+        if self.current_iteration == 1:
+            print(prompt)
 
         response = self.ask_llm(prompt)
         logger.info(f"Thinking => {response}")
@@ -189,14 +206,16 @@ class Agent:
             parsed_response = json.loads(cleaned_response)
             
             if "action" in parsed_response:
-                action = parsed_response["action"]
-                tool_name = action["name"]
-                if not tool_name or tool_name == "none":
-                    logger.info("No action needed. Proceeding to final answer.")
-                    self.think()
-                else:
-                    self.trace("assistant", f"Action: Using {tool_name} tool")
-                    self.act(tool_name, action.get("input", self.query))
+                actions = parsed_response["action"]
+                for action in actions:
+                    tool_name = action["name"]
+                    if not tool_name or tool_name == "none":
+                        logger.info("No action needed. Proceeding to final answer.")
+                    else:
+                        self.trace("assistant", f"Action: Using {tool_name} tool")
+                        self.act(tool_name, action.get("input", self.query))
+                # 处理完所有action后，再进行思考
+                self.think()
             elif "answer" in parsed_response:
                 self.trace("assistant", f"{parsed_response['answer']}")
             else:
@@ -224,11 +243,11 @@ class Agent:
             observation = f"Observation from {tool_name}: {result}"
             self.trace("system", observation)
             self.messages.append(Message(role="system", content=observation))  # Add observation to message history
-            self.think()
+            #self.think()
         else:
             logger.error(f"No tool registered for choice: {tool_name}")
             self.trace("system", f"Error: Tool {tool_name} not found")
-            self.think()
+            #self.think()
 
     def execute(self, query: str) -> str:
         """
@@ -265,12 +284,14 @@ class Agent:
         ])
         return str(response) if response is not None else "No response from LLM"
 
-def run(query: str, role: str) -> str:
+def run(query: str, role: str, history: List) -> str:
     """
     Sets up the agent, registers tools, and executes a query.
 
     Args:
         query (str): The query to execute.
+        role (str): The role of the user.
+        history (List): The history of the messages.
 
     Returns:
         str: The agent's final answer.
@@ -281,6 +302,8 @@ def run(query: str, role: str) -> str:
         else admin_tools
     for name, tool in tools.items(): 
         agent.register(name, tool['function'], tool['description'])
+    for message in history:
+        agent.add_history(message.role, message.content)
     answer = agent.execute(query)
     return answer
 

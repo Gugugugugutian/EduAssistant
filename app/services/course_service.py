@@ -89,6 +89,13 @@ class CourseService:
             (StudentCourse.course_id == course_id) & 
             (StudentCourse.student_id == student_id)
         ).get()
+
+        for assignment in student_course.course.assignments:
+            StudentAssignment.delete().where(
+                StudentAssignment.student==student_id,
+                StudentAssignment.assignment==assignment
+            ).execute()
+
         return student_course.delete_instance()
 
     @register_as_tool(roles=["student", "teacher"])
